@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_colors.dart';
 import '../utils/constants.dart';
-import 'home_screen.dart';
+import 'demo_home_screen.dart'; // Temporaire pour les tests
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -12,14 +12,15 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _pseudoController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   String _selectedQuartier = Constants.defaultQuartiers.first;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
@@ -41,76 +42,27 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _signInAnonymously() async {
-    final authProvider = context.read<AuthProvider>();
-    
-    final success = await authProvider.signInAnonymously();
-    if (success && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    }
+    // Pour les tests, on navigue directement sans Firebase
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const DemoHomeScreen()),
+    );
   }
 
   Future<void> _signInWithEmail() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      _showSnackBar('Veuillez remplir tous les champs');
-      return;
-    }
-
-    final authProvider = context.read<AuthProvider>();
-    
-    final success = await authProvider.signInWithEmail(
-      _emailController.text.trim(),
-      _passwordController.text,
+    // Pour les tests, on navigue directement sans Firebase
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const DemoHomeScreen()),
     );
-    
-    if (success && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else {
-      _showSnackBar(authProvider.errorMessage ?? 'Erreur de connexion');
-    }
   }
 
   Future<void> _registerWithEmail() async {
-    if (_emailController.text.isEmpty || 
-        _passwordController.text.isEmpty || 
-        _pseudoController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty) {
-      _showSnackBar('Veuillez remplir tous les champs');
-      return;
-    }
-
-    if (_passwordController.text != _confirmPasswordController.text) {
-      _showSnackBar('Les mots de passe ne correspondent pas');
-      return;
-    }
-
-    if (_passwordController.text.length < 6) {
-      _showSnackBar('Le mot de passe doit contenir au moins 6 caractères');
-      return;
-    }
-
-    final authProvider = context.read<AuthProvider>();
-    
-    final success = await authProvider.registerWithEmail(
-      _emailController.text.trim(),
-      _passwordController.text,
-      _pseudoController.text.trim(),
-      _selectedQuartier,
+    // Pour les tests, on navigue directement sans Firebase
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const DemoHomeScreen()),
     );
-    
-    if (success && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else {
-      _showSnackBar(authProvider.errorMessage ?? 'Erreur d\'inscription');
-    }
   }
 
   void _showSnackBar(String message) {
@@ -137,143 +89,155 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // En-tête
-              Padding(
-                padding: const EdgeInsets.all(30),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(
-                        Icons.groups,
-                        size: 40,
-                        color: AppColors.primaryOrange,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Bienvenue sur SQUAD CI',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const Text(
-                      'L\'application sociale ivoirienne',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                ),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom,
               ),
-              
-              // Bouton Connexion Anonyme
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: Consumer<AuthProvider>(
-                    builder: (context, authProvider, child) {
-                      return ElevatedButton(
-                        onPressed: authProvider.isLoading ? null : _signInAnonymously,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.primaryOrange,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
+              child: Column(
+                children: [
+                  // En-tête
+                  Padding(
+                    padding: const EdgeInsets.all(30),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                        ),
-                        child: authProvider.isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text(
-                                'Commencer sans compte',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  'ou',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              
-              // Formulaires de connexion/inscription
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 10),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      // TabBar
-                      Container(
-                        margin: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: AppColors.cardBackground,
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: TabBar(
-                          controller: _tabController,
-                          indicator: BoxDecoration(
+                          child: const Icon(
+                            Icons.groups,
+                            size: 40,
                             color: AppColors.primaryOrange,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Bienvenue sur SQUAD CI',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Text(
+                          'L\'application sociale ivoirienne',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Bouton Connexion Anonyme
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: Consumer<AuthProvider>(
+                        builder: (context, authProvider, child) {
+                          return ElevatedButton(
+                            onPressed: authProvider.isLoading
+                                ? null
+                                : _signInAnonymously,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.primaryOrange,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: authProvider.isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Text(
+                                    'Commencer sans compte',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Text(
+                      'ou',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+
+                  // Formulaires de connexion/inscription
+                  Container(
+                    height: 380, // Réduit de 400 à 380 pour éviter l'overflow
+                    margin: const EdgeInsets.only(top: 10),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        // TabBar
+                        Container(
+                          margin: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.cardBackground,
                             borderRadius: BorderRadius.circular(25),
                           ),
-                          labelColor: Colors.white,
-                          unselectedLabelColor: AppColors.textGrey,
-                          tabs: const [
-                            Tab(text: 'Connexion'),
-                            Tab(text: 'Inscription'),
-                          ],
+                          child: TabBar(
+                            controller: _tabController,
+                            indicator: BoxDecoration(
+                              color: AppColors.primaryOrange,
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            labelColor: Colors.white,
+                            unselectedLabelColor: AppColors.textGrey,
+                            tabs: const [
+                              Tab(text: 'Connexion'),
+                              Tab(text: 'Inscription'),
+                            ],
+                          ),
                         ),
-                      ),
-                      
-                      // TabBarView
-                      Expanded(
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _buildSignInTab(),
-                            _buildSignUpTab(),
-                          ],
+
+                        // TabBarView
+                        Container(
+                          height: 300, // Réduit de 320 à 300
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildSignInTab(),
+                              _buildSignUpTab(),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -377,7 +341,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: authProvider.isLoading ? null : _registerWithEmail,
+                    onPressed:
+                        authProvider.isLoading ? null : _registerWithEmail,
                     child: authProvider.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text('S\'inscrire'),
@@ -433,7 +398,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       value: _selectedQuartier,
       decoration: InputDecoration(
         labelText: 'Quartier préféré',
-        prefixIcon: const Icon(Icons.location_on, color: AppColors.primaryOrange),
+        prefixIcon:
+            const Icon(Icons.location_on, color: AppColors.primaryOrange),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
         ),
