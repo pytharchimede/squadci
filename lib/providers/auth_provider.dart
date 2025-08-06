@@ -7,22 +7,22 @@ import '../services/firestore_service.dart';
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
-  
+
   User? _firebaseUser;
   UserModel? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
-  
+
   User? get firebaseUser => _firebaseUser;
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _firebaseUser != null;
-  
+
   AuthProvider() {
     _initializeAuth();
   }
-  
+
   void _initializeAuth() {
     _authService.authStateChanges.listen((User? user) async {
       _firebaseUser = user;
@@ -34,10 +34,10 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     });
   }
-  
+
   Future<void> _loadCurrentUser() async {
     if (_firebaseUser == null) return;
-    
+
     try {
       _currentUser = await _firestoreService.getUser(_firebaseUser!.uid);
       notifyListeners();
@@ -45,11 +45,11 @@ class AuthProvider with ChangeNotifier {
       print('Erreur chargement utilisateur: $e');
     }
   }
-  
+
   Future<bool> signInAnonymously() async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final user = await _authService.signInAnonymously();
       if (user != null) {
@@ -61,7 +61,7 @@ class AuthProvider with ChangeNotifier {
           inscritAt: DateTime.now(),
           isAnonymous: true,
         );
-        
+
         await _firestoreService.createUser(userModel);
         return true;
       }
@@ -73,11 +73,11 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
-  
+
   Future<bool> signInWithEmail(String email, String password) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final user = await _authService.signInWithEmail(email, password);
       return user != null;
@@ -88,13 +88,18 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
-  
-  Future<bool> registerWithEmail(String email, String password, String pseudo, String quartier) async {
+
+  Future<bool> registerWithEmail(
+      String email, String password, String pseudo, String quartier) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
+      print(
+          'Début inscription avec email: $email, pseudo: $pseudo, quartier: $quartier');
       final user = await _authService.registerWithEmail(email, password);
+      print('Utilisateur Firebase créé: ${user?.uid}');
+
       if (user != null) {
         // Créer le profil utilisateur
         final userModel = UserModel(
@@ -105,22 +110,26 @@ class AuthProvider with ChangeNotifier {
           inscritAt: DateTime.now(),
           isAnonymous: false,
         );
-        
+
+        print('Création du profil utilisateur dans Firestore...');
         await _firestoreService.createUser(userModel);
+        print('Profil utilisateur créé avec succès');
         return true;
       }
+      print('Échec de création de l\'utilisateur Firebase');
       return false;
     } catch (e) {
+      print('Erreur inscription complète: $e');
       _setError('Erreur d\'inscription: $e');
       return false;
     } finally {
       _setLoading(false);
     }
   }
-  
+
   Future<void> signOut() async {
     _setLoading(true);
-    
+
     try {
       await _authService.signOut();
       _currentUser = null;
@@ -131,18 +140,18 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
-  
+
   Future<bool> updateProfile({String? pseudo, String? quartier}) async {
     if (_currentUser == null) return false;
-    
+
     _setLoading(true);
-    
+
     try {
       final updatedUser = _currentUser!.copyWith(
         pseudo: pseudo ?? _currentUser!.pseudo,
         quartierPrefere: quartier ?? _currentUser!.quartierPrefere,
       );
-      
+
       await _firestoreService.updateUser(updatedUser);
       _currentUser = updatedUser;
       notifyListeners();
@@ -154,28 +163,28 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
-  
+
   String _generateAnonymousPseudo() {
     final adjectives = ['Cool', 'Super', 'Brave', 'Drôle', 'Gentil', 'Sympa'];
     final nouns = ['Gbaka', 'Attiéké', 'Bangui', 'Garba', 'Kedjo', 'Yako'];
     final random = DateTime.now().millisecondsSinceEpoch % 1000;
-    
+
     final adjective = adjectives[random % adjectives.length];
     final noun = nouns[random % nouns.length];
-    
+
     return '$adjective$noun$random';
   }
-  
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
   }
-  
+
   void _setError(String error) {
     _errorMessage = error;
     notifyListeners();
   }
-  
+
   void _clearError() {
     _errorMessage = null;
     notifyListeners();

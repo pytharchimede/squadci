@@ -38,7 +38,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyBnrP3hK9_VNm9SjtQPuIMIQ2atI3HQc0A',
-    appId: '1:899584058984:web:squad-ci-web',
+    appId: '1:899584058984:web:0e3ba97e2cc59f534cfddd',
     messagingSenderId: '899584058984',
     projectId: 'squad-ci',
     authDomain: 'squad-ci.firebaseapp.com',

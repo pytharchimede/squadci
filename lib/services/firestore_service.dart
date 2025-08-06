@@ -48,6 +48,15 @@ class FirestoreService {
     }
   }
 
+  Future<void> deleteUser(String uid) async {
+    try {
+      await _db.collection(Constants.usersCollection).doc(uid).delete();
+    } catch (e) {
+      print('Erreur suppression utilisateur: $e');
+      throw e;
+    }
+  }
+
   // === VOICE STATUS ===
 
   Future<String> createVoiceStatus(StatusModel status) async {

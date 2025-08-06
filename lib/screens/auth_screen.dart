@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_colors.dart';
 import '../utils/constants.dart';
-import 'demo_home_screen.dart'; // Temporaire pour les tests
+import '../widgets/password_strength_indicator.dart';
+import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -24,16 +25,60 @@ class _AuthScreenState extends State<AuthScreen>
   String _selectedQuartier = Constants.defaultQuartiers.first;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  String _currentPassword = '';
+  String _confirmPassword = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _passwordController.addListener(_updatePassword);
+    _confirmPasswordController.addListener(_updateConfirmPassword);
+  }
+
+  void _updatePassword() {
+    setState(() {
+      _currentPassword = _passwordController.text;
+    });
+  }
+
+  void _updateConfirmPassword() {
+    setState(() {
+      _confirmPassword = _confirmPasswordController.text;
+    });
+  }
+
+  bool _isSignupFormValid() {
+    // Vérifier que les champs ne sont pas vides
+    if (_emailController.text.trim().isEmpty ||
+        _pseudoController.text.trim().isEmpty ||
+        _currentPassword.isEmpty ||
+        _confirmPassword.isEmpty) {
+      return false;
+    }
+
+    // Vérifier que les mots de passe correspondent
+    if (_currentPassword != _confirmPassword) {
+      return false;
+    }
+
+    // Vérifier la force du mot de passe (au moins 3 critères sur 5)
+    int criteriaCount = 0;
+    if (_currentPassword.length >= 8) criteriaCount++;
+    if (_currentPassword.contains(RegExp(r'[A-Z]'))) criteriaCount++;
+    if (_currentPassword.contains(RegExp(r'[a-z]'))) criteriaCount++;
+    if (_currentPassword.contains(RegExp(r'[0-9]'))) criteriaCount++;
+    if (_currentPassword.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]')))
+      criteriaCount++;
+
+    return criteriaCount >= 3;
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _passwordController.removeListener(_updatePassword);
+    _confirmPasswordController.removeListener(_updateConfirmPassword);
     _emailController.dispose();
     _passwordController.dispose();
     _pseudoController.dispose();
@@ -42,27 +87,107 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   Future<void> _signInAnonymously() async {
-    // Pour les tests, on navigue directement sans Firebase
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const DemoHomeScreen()),
-    );
+    final authProvider = context.read<AuthProvider>();
+
+    try {
+      final success = await authProvider.signInAnonymously();
+      if (success && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        _showSnackBar(
+            authProvider.errorMessage ?? 'Erreur de connexion anonyme');
+      }
+    } catch (e) {
+      _showSnackBar('Erreur de connexion: $e');
+    }
   }
 
   Future<void> _signInWithEmail() async {
-    // Pour les tests, on navigue directement sans Firebase
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const DemoHomeScreen()),
-    );
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showSnackBar('Veuillez remplir tous les champs');
+      return;
+    }
+
+    final authProvider = context.read<AuthProvider>();
+
+    try {
+      final success = await authProvider.signInWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (success && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        _showSnackBar(authProvider.errorMessage ?? 'Erreur de connexion');
+      }
+    } catch (e) {
+      _showSnackBar('Erreur de connexion: $e');
+    }
   }
 
   Future<void> _registerWithEmail() async {
-    // Pour les tests, on navigue directement sans Firebase
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const DemoHomeScreen()),
-    );
+    if (_emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _pseudoController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
+      _showSnackBar('Veuillez remplir tous les champs');
+      return;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      _showSnackBar('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (_passwordController.text.length < 6) {
+      _showSnackBar('Le mot de passe doit contenir au moins 6 caractères');
+      return;
+    }
+
+    // Validation de l'email
+    if (!_isValidEmail(_emailController.text.trim())) {
+      _showSnackBar('Veuillez entrer un email valide');
+      return;
+    }
+
+    // Validation du pseudo
+    if (_pseudoController.text.trim().length < 3) {
+      _showSnackBar('Le pseudo doit contenir au moins 3 caractères');
+      return;
+    }
+
+    final authProvider = context.read<AuthProvider>();
+
+    try {
+      final success = await authProvider.registerWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text,
+        _pseudoController.text.trim(),
+        _selectedQuartier,
+      );
+
+      if (success && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        _showSnackBar(authProvider.errorMessage ?? 'Erreur d\'inscription');
+      }
+    } catch (e) {
+      _showSnackBar('Erreur d\'inscription: $e');
+    }
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email);
   }
 
   void _showSnackBar(String message) {
@@ -188,7 +313,7 @@ class _AuthScreenState extends State<AuthScreen>
 
                   // Formulaires de connexion/inscription
                   Container(
-                    height: 380, // Réduit de 400 à 380 pour éviter l'overflow
+                    height: 370, // Réduit pour éviter l'overflow
                     margin: const EdgeInsets.only(top: 10),
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -332,6 +457,55 @@ class _AuthScreenState extends State<AuthScreen>
                 });
               },
             ),
+            // Indicateur de force du mot de passe
+            PasswordStrengthIndicator(
+              password: _currentPassword,
+              confirmPassword: _confirmPassword,
+            ),
+            // Indicateur de correspondance des mots de passe
+            if (_confirmPassword.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _currentPassword == _confirmPassword
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _currentPassword == _confirmPassword
+                        ? Colors.green
+                        : Colors.red,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _currentPassword == _confirmPassword
+                          ? Icons.check_circle
+                          : Icons.error,
+                      color: _currentPassword == _confirmPassword
+                          ? Colors.green
+                          : Colors.red,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _currentPassword == _confirmPassword
+                          ? 'Les mots de passe correspondent'
+                          : 'Les mots de passe ne correspondent pas',
+                      style: TextStyle(
+                        color: _currentPassword == _confirmPassword
+                            ? Colors.green
+                            : Colors.red,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             _buildQuartierDropdown(),
             const SizedBox(height: 30),
@@ -341,8 +515,9 @@ class _AuthScreenState extends State<AuthScreen>
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed:
-                        authProvider.isLoading ? null : _registerWithEmail,
+                    onPressed: authProvider.isLoading || !_isSignupFormValid()
+                        ? null
+                        : _registerWithEmail,
                     child: authProvider.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text('S\'inscrire'),

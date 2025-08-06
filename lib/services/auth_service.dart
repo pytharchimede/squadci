@@ -14,9 +14,19 @@ class AuthService {
     try {
       final UserCredential userCredential = await _auth.signInAnonymously();
       return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      print('Erreur connexion anonyme: ${e.code}');
+      switch (e.code) {
+        case 'operation-not-allowed':
+          throw 'Connexion anonyme non autorisée.';
+        case 'too-many-requests':
+          throw 'Trop de tentatives. Réessayez plus tard.';
+        default:
+          throw 'Erreur de connexion anonyme: ${e.message}';
+      }
     } catch (e) {
       print('Erreur connexion anonyme: $e');
-      return null;
+      throw 'Erreur de connexion anonyme: $e';
     }
   }
 
@@ -29,9 +39,25 @@ class AuthService {
         password: password,
       );
       return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      print('Erreur connexion email: ${e.code}');
+      switch (e.code) {
+        case 'user-not-found':
+          throw 'Aucun utilisateur trouvé avec cet email.';
+        case 'wrong-password':
+          throw 'Mot de passe incorrect.';
+        case 'invalid-email':
+          throw 'Format d\'email invalide.';
+        case 'user-disabled':
+          throw 'Ce compte a été désactivé.';
+        case 'too-many-requests':
+          throw 'Trop de tentatives. Réessayez plus tard.';
+        default:
+          throw 'Erreur de connexion: ${e.message}';
+      }
     } catch (e) {
       print('Erreur connexion email: $e');
-      throw e;
+      throw 'Erreur de connexion: $e';
     }
   }
 
@@ -44,9 +70,25 @@ class AuthService {
         password: password,
       );
       return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      print('Erreur inscription: ${e.code}');
+      switch (e.code) {
+        case 'weak-password':
+          throw 'Le mot de passe est trop faible.';
+        case 'email-already-in-use':
+          throw 'Un compte existe déjà avec cet email.';
+        case 'invalid-email':
+          throw 'Format d\'email invalide.';
+        case 'operation-not-allowed':
+          throw 'Inscription non autorisée.';
+        case 'too-many-requests':
+          throw 'Trop de tentatives. Réessayez plus tard.';
+        default:
+          throw 'Erreur d\'inscription: ${e.message}';
+      }
     } catch (e) {
       print('Erreur inscription: $e');
-      throw e;
+      throw 'Erreur d\'inscription: $e';
     }
   }
 
